@@ -1,2 +1,2 @@
-# OpenClocking
+# ClockVision
 Clocking Facial Recognition Service
