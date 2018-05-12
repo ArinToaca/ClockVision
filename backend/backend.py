@@ -1,4 +1,6 @@
 import os
+import string
+import random
 import base64
 import sys
 import sqlite3
@@ -8,6 +10,7 @@ from flask import send_from_directory
 from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash
 
+design = {0: 'off', 1: 'on'}
 app = Flask(__name__)  # create the application instance :)
 app.config.from_object(__name__)  # load config from this file , flaskr.py
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -81,6 +84,7 @@ def set_worker():
         columns = [column[0] for column in cursor.description]
         for row in cursor.fetchall():
             results.append(dict(zip(columns, row)))
+            results[-1]['at_work'] = design[results[-1]["at_work"]]
         return jsonify(results[0])
     return 'OK'
 
@@ -147,6 +151,7 @@ def get_worker_history():
         results = []
         for row in cursor.fetchall():
             results.append(dict(zip(columns, row)))
+            results[-1]['at_work'] = design[results[-1]["at_work"]]
         cursor = db.execute('select at_work from workers where worker_id == ?',
                             request.args.get('worker_id'))
         return jsonify(results)
@@ -172,15 +177,34 @@ def get_all_workers():
         for row_history in cursor_history.fetchall():
             work_history.append(dict(zip(columns_history, row_history)))
         results[-1]["worker_history"] = work_history
+        results[-1]['at_work'] = design[results[-1]["at_work"]]
 
     return jsonify(results)
+
+
+@app.route('/raspi', methods=['POST'])
+def raspi_post():
+    image_data = request.form['image']
+    extension = request.form['png']
+    N = 10
+    #  Random string generation for image files
+    filename = ''.join(random.choices(
+                       string.ascii_uppercase + string.digits, k=N))
+    with open("./static" + str(filename) + str(extension), "wb") as fh:
+        fh.write(base64.decodebytes(image_data.encode()))
+
+    result = dict()
+    result['name'] = "Test Testescu"
+    result['status'] = 'entered'
+
+    return result
 
 
 @app.route('/uploads/<path:filename>')
 @cross_origin()
 def download_file(filename):
     '''Image fetching'''
-    return send_from_directory('/static',
+    return send_from_directory('./static',
                                filename, as_attachment=True)
 
 
