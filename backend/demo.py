@@ -54,7 +54,7 @@ def get_db():
 # ROUTES
 
 
-@app.route('/worker', methods=['POST'])
+@app.route('/worker', methods=['POST', 'GET'])
 def set_worker():
     db = get_db()
     if request.method == 'POST':
@@ -72,19 +72,19 @@ def set_worker():
     elif request.method == 'GET':
         cursor = db.execute('select * from workers where '
                             'worker_id == ?', request.args.get('worker_id'))
+        results = []
         columns = [column[0] for column in cursor.description]
-        row = cursor.fetchone()
-        result = dict(zip(columns, row))
-        return jsonify(result)
-
+        for row in cursor.fetchall():
+            results.append(dict(zip(columns, row)))
+        return jsonify(results[0])
     return 'OK'
 
 
 @app.route('/worker_history', methods=['POST', 'GET'])
-def worker_history():
+def work():
     db = get_db()
     if request.method == 'POST':
-        cursor = db.execute('select at_work from workers'
+        cursor = db.execute('select at_work from workers '
                             'where worker_id == ?',
                             [request.args.get('worker_id')])
 
@@ -100,8 +100,8 @@ def worker_history():
                         end_work,
                         0,  # field only valid at end of workday.
                         request.args.get('worker_id')])
-            db.execute('update workers'
-                       'set at_work = ?'
+            db.execute('update workers '
+                       'set at_work = ? '
                        'where worker_id == ?',
                        [at_work,
                         request.args.get('worker_id')])
@@ -115,18 +115,18 @@ def worker_history():
                                 [request.args.get('worker_id')])
             history_id = cursor.fetchone()[0]
             # for worker_history table
-            db.execute('update worker_history'
+            db.execute('update worker_history '
                        'set start_work = ?, '
                        'end_work = ?, '
                        'hours_worked = ? '
-                       'where history_id == ?'
+                       'where history_id == ? ',
                        [start_work,
                         end_work,
-                        (end_work - start_work),  # simple diff atm
+                        (int(end_work) - start_work),  # simple diff atm
                         history_id])
             # for workers table
-            db.execute('update workers'
-                       'set at_work = ?'
+            db.execute('update workers '
+                       'set at_work = ? '
                        'where worker_id == ?',
                        [at_work,
                         request.args.get('worker_id')])
@@ -147,6 +147,26 @@ def worker_history():
         return jsonify(results)
 
     return 'OK'
+
+
+@app.route('/all_workers', methods=['GET'])
+def get_all_workers():
+    db = get_db()
+    cursor = db.execute('select * from workers')
+    columns = [column[0] for column in cursor.description]
+    results = []
+    for row in cursor.fetchall():
+        results.append(dict(zip(columns, row)))
+        cursor_history = db.execute('select * from worker_history where '
+                                    'worker_id == ?',
+                                    [results[-1]['worker_id']])
+        columns_history = [column[0] for column in cursor_history.description]
+        work_history = []
+        for row_history in cursor_history.fetchall():
+            work_history.append(dict(zip(columns_history, row_history)))
+        results[-1]["worker_history"] = work_history
+
+    return jsonify(results)
 
 
 if __name__ == '__main__':
