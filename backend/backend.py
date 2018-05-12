@@ -119,7 +119,7 @@ def get_worker_history():
             history_id = cursor.fetchone()[0]
             # for worker_history table
             db.execute('update worker_history '
-                       'end_work = ?, '
+                       'set end_work = ?, '
                        'hours_worked = ? '
                        'where history_id == ? ',
                        [end_work,
