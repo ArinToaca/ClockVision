@@ -2,6 +2,7 @@ import os
 import sys
 import sqlite3
 from flask import jsonify
+from flask import send_from_directory
 from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash
 
@@ -81,7 +82,8 @@ def set_worker():
 
 
 @app.route('/worker_history', methods=['POST', 'GET'])
-def work():
+def get_worker_history():
+    '''Fetch respective worker work history'''
     db = get_db()
     if request.method == 'POST':
         cursor = db.execute('select at_work from workers '
@@ -151,6 +153,7 @@ def work():
 
 @app.route('/all_workers', methods=['GET'])
 def get_all_workers():
+    '''Listing everything in the database'''
     db = get_db()
     cursor = db.execute('select * from workers')
     columns = [column[0] for column in cursor.description]
@@ -167,6 +170,13 @@ def get_all_workers():
         results[-1]["worker_history"] = work_history
 
     return jsonify(results)
+
+
+@app.route('/uploads/<path:filename>')
+def download_file(filename):
+    '''Image fetching'''
+    return send_from_directory('/static',
+                               filename, as_attachment=True)
 
 
 if __name__ == '__main__':
