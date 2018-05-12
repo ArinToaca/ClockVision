@@ -1,4 +1,5 @@
 import os
+import base64
 import sys
 import sqlite3
 from flask import jsonify
@@ -118,12 +119,10 @@ def get_worker_history():
             history_id = cursor.fetchone()[0]
             # for worker_history table
             db.execute('update worker_history '
-                       'set start_work = ?, '
                        'end_work = ?, '
                        'hours_worked = ? '
                        'where history_id == ? ',
-                       [start_work,
-                        end_work,
+                       [end_work,
                         (int(end_work) - start_work),  # simple diff atm
                         history_id])
             # for workers table
