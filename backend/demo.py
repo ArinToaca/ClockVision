@@ -52,7 +52,10 @@ def get_db():
     return g.sqlite_db
 
 # ROUTES
-@app.route('/set_workers', methods=['POST']):
+
+
+@app.route('/set_worker', methods=['POST'])
+def set_worker():
     db = get_db()
     if request.method == 'POST':
         db.execute('insert into workers (at_work, '
@@ -63,7 +66,9 @@ def get_db():
         flash("New entry was successfully posted")
     return 'OK'
 
-@app.route('/worker_history', methods=['POST']):
+
+@app.route('/worker_history', methods=['POST'])
+def worker_history():
     db = get_db()
     if request.method == 'POST':
         cursor = db.execute('select at_work from workers'
@@ -80,17 +85,23 @@ def get_db():
                                 'end_work = ?, '
                                 'hours_worked = ? '
                                 'where history_id in (select history_id from '
-                                'worker_history order by id desc limit 1 where worker_id === ?)',
-                                [request.form['start_work'],request.form['end_work'],
-                                 request.form['hours_worked'],request.args.get('worker_id')])
+                                'worker_history order by id desc limit 1 where'
+                                'worker_id == ?)',
+                                [request.form['start_work'],
+                                 request.form['end_work'],
+                                 request.form['hours_worked'],
+                                 request.args.get('worker_id')])
         else:
             # INSERT
-            cursor = db.execute('insert into worker_history (start_work, end_work, hours_worked, worker_id) '
+            cursor = db.execute('insert into worker_history (start_work, '
+                                'end_work, hours_worked, worker_id) '
                                 'values (?, ?, ?,?)',
-                                [request.form['start_work', request.form['end_work'],
-                                 request.form['hours_worked'],request.args.get('worker_id')])
-        db.commit()
+                                [request.form['start_work'],
+                                 request.form['end_work'],
+                                 request.form['hours_worked'],
+                                 request.args.get('worker_id')])
     return 'OK'
+
 
 if __name__ == '__main__':
     if sys.argv[1] == 'dbinit':
