@@ -3,12 +3,14 @@ import base64
 import sys
 import sqlite3
 from flask import jsonify
+from flask_cors import CORS, cross_origin
 from flask import send_from_directory
 from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash
 
 app = Flask(__name__)  # create the application instance :)
 app.config.from_object(__name__)  # load config from this file , flaskr.py
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 # Load default config and override config from an environment variable
 app.config.update(dict(
@@ -57,6 +59,7 @@ def get_db():
 
 
 @app.route('/worker', methods=['POST', 'GET'])
+@cross_origin()
 def set_worker():
     db = get_db()
     if request.method == 'POST':
@@ -83,6 +86,7 @@ def set_worker():
 
 
 @app.route('/worker_history', methods=['POST', 'GET'])
+@cross_origin()
 def get_worker_history():
     '''Fetch respective worker work history'''
     db = get_db()
@@ -151,6 +155,7 @@ def get_worker_history():
 
 
 @app.route('/all_workers', methods=['GET'])
+@cross_origin()
 def get_all_workers():
     '''Listing everything in the database'''
     db = get_db()
@@ -172,6 +177,7 @@ def get_all_workers():
 
 
 @app.route('/uploads/<path:filename>')
+@cross_origin()
 def download_file(filename):
     '''Image fetching'''
     return send_from_directory('/static',
@@ -185,6 +191,6 @@ if __name__ == '__main__':
             init_db()
     elif sys.argv[1] == 'run':
         print('running app...')
-        app.run()
+        app.run(host='0.0.0.0')
     else:
         raise ValueError("incorrect nr of args!")
