@@ -9,14 +9,16 @@
     "test:integration": "polymer build # test that psk builds without error with the CLI"
   },
   "dependencies": {
+    "@arc-components/date-time": "github:advanced-rest-client/date-time",
     "@polymer/app-layout": "^3.0.0-pre.17",
     "@polymer/app-route": "^3.0.0-pre.17",
     "@polymer/iron-ajax": "^3.0.0-pre.19",
-    "@polymer/iron-flex-layout": "^3.0.0-pre.17",
+    "@polymer/iron-flex-layout": "^3.0.0-pre.19",
     "@polymer/iron-iconset-svg": "^3.0.0-pre.17",
-    "@polymer/iron-media-query": "^3.0.0-pre.17",
+    "@polymer/iron-media-query": "^3.0.0-pre.19",
     "@polymer/iron-pages": "^3.0.0-pre.17",
     "@polymer/iron-selector": "^3.0.0-pre.17",
+    "@polymer/paper-card": "^3.0.0-pre.19",
     "@polymer/paper-icon-button": "^3.0.0-pre.17",
     "@polymer/polymer": "^3.0.0",
     "@vaadin/vaadin-icons": "^4.1.4-pre.2",

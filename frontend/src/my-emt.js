@@ -1,31 +1,83 @@
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import './shared-styles.js';
-import '@polymer/iron-ajax/iron-ajax.js'
+import '@polymer/iron-ajax/iron-ajax.js';
+import '@polymer/paper-card/paper-card.js';
+import '@vaadin/vaadin-icons/vaadin-icons.js';
+import '@polymer/iron-flex-layout/iron-flex-layout.js'
 
 class EmployeesTracking extends PolymerElement {
   static get template() {
     return html`
-      <style include="shared-styles">
+      <style include="shared-styles iron-flex iron-flex-alignment">
         :host {
           display: block;
-
           padding: 10px;
         }
+        .icon-dim {
+          --iron-icon-height: 15px;
+          --iron-icon-width: 15px;
+        }
+        .on {
+          --iron-icon-fill-color: #4CAF50;
+          padding-left: 10px;
+        }
+        .off {
+          --iron-icon-fill-color: #FF5722;
+          padding-left: 10px;
+        }
+        
+        paper-card {
+          width: 100%;
+        }
+
+        p {
+          padding-left: 10px;
+          color: #484848;
+          font-size: 18px;
+        }
+
+        a {
+          color: #484848;
+        }
+
+        iron-icon {
+          color: #4285f4;
+        }
+
+      .customImg {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%; 
+        float: left;
+    }
+
+    .flex-horizontal {
+      @apply --layout-horizontal;
+    }
+    .flexchild {
+      @apply --layout-flex;
+    }
+
       </style>
 
+      <iron-ajax auto url="http://10.10.1.18:5000/all_workers" method="GET" handle-as="json" on-response="getAllWorkers"></iron-ajax>
+      
       <template is="dom-repeat" items="{{employees}}">
-        <div class="card">
-          <h1>[[item.name]]</h1>
-          <p>[[item.at_work]]</p>
-          <template is="dom-repeat" items="{{employees_history}}">
-          <p>[[item.start_work]]</p>
-          <p>[[item.end_work]]</p>
-          </template>
-        </div>
+        <paper-card animatedShadow="true">
+          <paper-icon-item class="card-header">
+          <p><iron-icon icon="vaadin:circle" class$="{{item.at_work}} icon-dim"></iron-icon> [[item.name]]<img src="http://10.10.1.18:5000/static/[[item.worker_id]].jpg" class="customImg"></p>
+          <span>&nbsp</span>
+          <paper-item-body>
+            <template is="dom-repeat" items="[[item.worker_history]]">
+            <div>
+              <p><iron-icon icon="vaadin:calendar"></iron-icon> [[item.start_work]] <iron-icon icon="vaadin:arrows-long-h"></iron-icon>
+              [[item.end_work]] <iron-icon icon="vaadin:clock"></iron-icon>  [[item.hours_worked]]</p>
+            </div>
+            </template>
+          </paper-item-body>
+        </paper-card>
+        <span>&nbsp</span>
       </template>
-
-      <iron-ajax auto url="http://127.0.0.1:5000/all_workers" method="GET" handle-as="json" on-response="getAllWorkers"></iron-ajax>
-
     `;
     }
 
@@ -33,12 +85,9 @@ class EmployeesTracking extends PolymerElement {
       return {
         employees: {
           type: Array,
-          value() {
-            return [this.employees];
+          value() { return [this.employees]}
           }
-          }
-        }
-      };
+        };
     }
 
     ready(){
@@ -49,17 +98,6 @@ class EmployeesTracking extends PolymerElement {
     getAllWorkers(event, request) {
       const response = request.response;
       this.employees = response;
-      
-      var myObj = response[0].worker_history;
-      console.log(myObj[0]);
-
-
-      /*var result = {};
-for (var i=0; i<response[0].worker_history.length; i++) {
-  result[arr[i].key] = response[0].worker_history[i].value;
-}
-  console.log*/
-      //this.employees_history = [{"start_work": 150, "end_work":100}, {"start_work": 10000, "end_work":1005}];
     }
 
   
