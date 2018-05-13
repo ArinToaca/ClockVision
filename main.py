@@ -11,6 +11,9 @@ SCREEN_HEIGHT = 600
 FONT = cv2.FONT_HERSHEY_DUPLEX
 FILENAME = 'face.png'
 EXTENSION = 'png'
+CASCADE_PATH = '/home/pi/HackTM/haarcascade_frontalface_alt.xml'
+
+STOP = 0
 
 def clamp(minimum, x, maximum):
     #print("Clamping " + str(x) + "; " + str(int(max(minimum, min(x, maximum)))))
@@ -21,15 +24,12 @@ def save_face(face_mat):
   
 def send_face():
   print("Sending data to server!")
-  try:
-    with open(FILENAME, "rb") as image_file:
-      encoded_string = base64.b64encode(image_file.read())
-      
-    response = requests.send_image_to_server(encoded_string, EXTENSION)
-    json_data = json.loads(response)
-  except:
-    traceback.print_exc()
-    return "error"
+
+  with open(FILENAME, "rb") as image_file:
+    encoded_string = base64.b64encode(image_file.read())
+    
+  response = requests.send_image_to_server(encoded_string, EXTENSION)
+  json_data = json.loads(response)
   
   return json_data
   
@@ -71,12 +71,20 @@ def exhaust_all_frames(vidcap):
   
   return cv2.VideoCapture(0)
 
+def close_app(event,x,y,flags,param):
+    global STOP 
+    if event == cv2.EVENT_LBUTTONDOWN:
+      STOP = 1
+
 def run():
+  global STOP
   #cv2.namedWindow("window")
   cv2.namedWindow("window", cv2.WND_PROP_FULLSCREEN)
   cv2.setWindowProperty("window",cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
   
-  face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_alt.xml')
+  cv2.setMouseCallback('window',close_app)
+  
+  face_cascade = cv2.CascadeClassifier(CASCADE_PATH)
   
   cap = cv2.VideoCapture(0)
   
@@ -86,7 +94,7 @@ def run():
   last_x = 0
   last_y = 0
   
-  while(True):
+  while(not STOP):
       # Capture frame-by-frame
       ret, frame = cap.read()
       height, width, channels = frame.shape
@@ -97,7 +105,7 @@ def run():
       faces = face_cascade.detectMultiScale(gray, 1.3, 5)
       
       if len(faces) > 1:
-        display_message('Too many faces detected in image: ' + str(len(faces)), 2000, 2)
+        display_message('Too many faces detected in image: ' + str(len(faces)), 750, 1)
         cap = exhaust_all_frames(cap)
         continue
       
@@ -108,7 +116,7 @@ def run():
           if consecutive_face_frames < 10:
             center_x = x + w / 2
             center_y = y + h / 2
-            if abs(center_x - last_x) < 50 and abs(center_y - last_y) < 50:
+            if abs(center_x - last_x) < 50 and abs(center_y - last_y) < 25:
               consecutive_face_frames += 1
             else:
               draw_text_on_image(frame, 'Hold still!', 1.3)
@@ -135,16 +143,26 @@ def run():
           #generate face subimage
           roi_face = frame[start_y:end_y, start_x:end_x]
           save_face(roi_face)
-          rsp = send_face()
           
-          message = 'Bine ai venit ' + rsp['name'] + '!'
-          if rsp['status'] == 'entered':
-            message2 = 'Poti intra in cladire!'
-          else:
-            message2 = 'Poti iesi din cladire!'
+          display_message('Sending data to server', 2000, 2)
           
-          display_message(message, 2000, 2)
-          display_message(message2, 2000, 2)
+          try:
+            rsp = send_face()
+            
+            if rsp['status'] == 'Intruder':
+              message = 'Persoana neautorizata!'
+              display_message(message, 2000, 2)
+            else:
+              message = 'Bine ai venit ' + rsp['name'] + '!'
+              if rsp['status'] == 'Entered':
+                message2 = 'Poti intra in cladire!'
+              else:
+                message2 = 'Poti iesi din cladire!'
+            
+              display_message(message, 1000, 2)
+              display_message(message2, 2000, 2)
+          except:
+            display_message('Error while transmitting image to server', 2000, 1)
           cap = exhaust_all_frames(cap)
 
           #show image
@@ -157,7 +175,7 @@ def run():
   
       # Display the resulting frame
       cv2.imshow('window',frame)
-      if cv2.waitKey(1) & 0xFF == ord('q'):
+      if (cv2.waitKey(1) & 0xFF == ord('q')):
           break
 
   # When everything done, release the capture
