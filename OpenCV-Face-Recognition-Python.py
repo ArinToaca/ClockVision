@@ -6,16 +6,10 @@ import os
 #import numpy to convert python lists to numpy arrays as 
 #it is needed by OpenCV face recognizers
 import numpy as np
+import pickle 
 
-subjects=[]
-with open("angajatii.txt","r") as f:
-    global subjects
-    subjects=f.readlines()
-
-subjects = [str(el.strip()) for el in subjects]
-
-print(subjects)
-
+#create our LBPH face recognizer 
+face_recognizer = cv2.face.LBPHFaceRecognizer_create()
 
 #function to detect face using OpenCV
 def detect_face(img):
@@ -115,23 +109,6 @@ def prepare_training_data(data_folder_path):
     return faces, labels
 
 
-print("Preparing data...")
-faces, labels = prepare_training_data("training-data")
-print("Data prepared")
-
-print("Total faces: ", len(faces))
-print("Total labels: ", len(labels))
-
-
-#create our LBPH face recognizer 
-face_recognizer = cv2.face.LBPHFaceRecognizer_create()
-
-#
-
-#train our face recognizer of our training faces
-face_recognizer.train(faces, np.array(labels))
-
-
 #function to draw rectangle on image 
 #according to given (x, y) coordinates and 
 #given width and heigh
@@ -157,7 +134,12 @@ def predict(test_img):
     #predict the image using our face recognizer 
     label, confidence = face_recognizer.predict(face)
     #get name of respective label returned by face recognizer
-    label_text = subjects[label-1]
+    print(confidence)
+    if confidence < 43:
+        label_text = subjects[label]
+    else:
+        label_text = subjects[0]
+        label=0
     
     #draw a rectangle around face detected
     draw_rectangle(img, rect)
@@ -166,24 +148,65 @@ def predict(test_img):
     
     return (img,label)
 
+def Marius(argvi,argv):
+    subjects=[]
+    with open("angajatii.txt","r") as f:
+        global subjects
+        subjects=f.readlines()
 
-print("Predicting images...")
+    subjects = [str(el.strip()) for el in subjects]
+    subjects.insert(0,"unknown")
+
+	
+    print("Preparing data...")
+    if argv == "train":
+        faces, labels = prepare_training_data("training-data")
+    print("Data prepared")
+
+#print(faces)
+#print(labels)
+
+    print("Saving to file!")
+
+    if argv == "train":
+        with open('objs.pkl', 'wb') as f:
+            pickle.dump([faces, labels], f)
+
+    print ('Reading from file!')
+	
+    with open('objs.pkl', 'rb') as f:  
+        faces_read, labels_read = pickle.load(f)
+
+    faces=faces_read
+    labels=labels_read
+	
+
+    print("Total faces: ", len(faces))
+    print("Total labels: ", len(labels))
+
+
+
+#train our face recognizer of our training faces
+    face_recognizer.train(faces_read, np.array(labels_read))
+
+    print("Predicting images...")
 
 #load test images
-test_img1 = cv2.imread(sys.argv[1])
+    test_img1 = cv2.imread(argvi)
 
 #perform a prediction
-predicted_img1,i = predict(test_img1)
-print("Prediction complete")
+    predicted_img1,i = predict(test_img1)
+    print("Prediction complete")
 
 #display both images
-cv2.imshow(subjects[i-1], cv2.resize(predicted_img1, (400, 500)))
-cv2.waitKey(0)
-cv2.destroyAllWindows()
-cv2.waitKey(1)
-cv2.destroyAllWindows()
+    #cv2.imshow(subjects[i], cv2.resize(predicted_img1, (400, 500)))
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
+    #cv2.waitKey(1)
+    #cv2.destroyAllWindows()
+    return subjects[i]
 
 
 
-
-
+if __name__ == '__main__':
+	print(Marius(sys.argv[1],sys.argv[2]))
