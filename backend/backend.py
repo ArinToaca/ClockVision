@@ -11,7 +11,21 @@ from flask_cors import CORS, cross_origin
 from flask import send_from_directory
 from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash
+import backend
+from machine_learning import Marius
 
+bullshit_hardcoded = dict()
+bullshit_hardcoded['Mario'] = False
+bullshit_hardcoded['Tofeni Marius'] = False
+bullshit_hardcoded['Elvis Presley'] = False
+bullshit_hardcoded['Toaca Arin'] = False
+bullshit_hardcoded['Darius Bogdan'] = False
+bullshit_hardcoded['Teny'] = False
+bullshit_hardcoded['Raluca Incicas'] = False
+name_to_id = dict()
+name_to_id['Toaca Arin'] = 1
+name_to_id['Darius Bogdan'] = 2
+name_to_id['Teny'] = 3
 design = {0: 'off', 1: 'on'}
 app = Flask(__name__)  # create the application instance :)
 app.config.from_object(__name__)  # load config from this file , flaskr.py
@@ -212,15 +226,41 @@ def raspi_post():
     #  Random string generation for image files
     filename = ''.join(random.choices(
                        string.ascii_uppercase + string.digits, k=N))
-    print("LOGARIN", filename)
     with open(str("./static/" + filename) + "." + str(extension), "wb") as fh:
         fh.write(base64.decodebytes(image_data.encode()))
-
+    final_filename = './static/' + filename + '.' + str(extension)
+    ml_name = Marius(final_filename, 'run')
+    print("bullshit_hardcoded = %s" % bullshit_hardcoded)
     result = dict()
-    result['name'] = "Test Testescu"
-    result['status'] = 'entered'
+    print("ML NAME! =%s" % ml_name)
+    if ml_name in bullshit_hardcoded.keys():
+        print("RECOGNIZED FACE")
+        result['name'] = ml_name
+        state = bullshit_hardcoded[ml_name]
+        state = not state
+        bullshit_hardcoded[ml_name] = state
+        db = get_db()
+        cursor = db.execute('select at_work from workers '
+                            'where worker_id == ?',
+                            name_to_id[ml_name])
+        state = cursor.fetchone()[0]
+        state = not state
+        db.execute('select at_work from workers '
+                   'where worker_id == ?',
+                   name_to_id[ml_name])
 
-    return jsonify(result)
+        if state:
+            result['status'] = 'Entered'
+        else:
+            result['status'] = 'Exited'
+
+        return jsonify(result)
+    else:
+        result['error'] = 'Error! Unknown Personnel'
+        result['status'] = 'Intruder'
+        result['name'] = 'Intruder'
+
+        return jsonify(result)
 
 
 @app.route('/uploads/<path:filename>')
