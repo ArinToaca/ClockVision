@@ -1,13 +1,18 @@
 import os
+import datetime
+import string
+import random
 import base64
 import sys
 import sqlite3
+import time
 from flask import jsonify
 from flask_cors import CORS, cross_origin
 from flask import send_from_directory
 from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash
 
+design = {0: 'off', 1: 'on'}
 app = Flask(__name__)  # create the application instance :)
 app.config.from_object(__name__)  # load config from this file , flaskr.py
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -20,6 +25,15 @@ app.config.update(dict(
     PASSWORD='default'
 ))
 app.config.from_envvar('FLASKR_SETTINGS', silent=True)
+
+
+def epoch_to_iso(seconds):
+    return time.strftime('%Y-%m-%dT%H:%M:%SZ',
+                         time.localtime(seconds))
+
+
+def seconds_to_hours(seconds):
+    return str(datetime.timedelta(seconds=seconds))
 
 
 def init_db():
@@ -81,6 +95,7 @@ def set_worker():
         columns = [column[0] for column in cursor.description]
         for row in cursor.fetchall():
             results.append(dict(zip(columns, row)))
+            results[-1]['at_work'] = design[results[-1]["at_work"]]
         return jsonify(results[0])
     return 'OK'
 
@@ -122,12 +137,15 @@ def get_worker_history():
                                 [request.args.get('worker_id')])
             history_id = cursor.fetchone()[0]
             # for worker_history table
+            cursor = db.execute('select start_work from worker_history where '
+                                'history_id == ? ', [history_id])
+            start_work = int(cursor.fetchone()[0])
             db.execute('update worker_history '
                        'set end_work = ?, '
                        'hours_worked = ? '
                        'where history_id == ? ',
                        [end_work,
-                        (int(end_work) - start_work),  # simple diff atm
+                        (int(end_work) - int(start_work)),  # simple diff atm
                         history_id])
             # for workers table
             db.execute('update workers '
@@ -147,8 +165,11 @@ def get_worker_history():
         results = []
         for row in cursor.fetchall():
             results.append(dict(zip(columns, row)))
-        cursor = db.execute('select at_work from workers where worker_id == ?',
-                            request.args.get('worker_id'))
+            results[-1]['start_work'] = epoch_to_iso(results[-1]['start_work'])
+            results[-1]['end_work'] = epoch_to_iso(results[-1]['end_work'])
+            results[-1]['hours_worked'] = \
+                seconds_to_hours(results[-1]['hours_worked'])
+
         return jsonify(results)
 
     return 'OK'
@@ -171,16 +192,42 @@ def get_all_workers():
         work_history = []
         for row_history in cursor_history.fetchall():
             work_history.append(dict(zip(columns_history, row_history)))
+            work_history[-1]['start_work'] = \
+                epoch_to_iso(work_history[-1]['start_work'])
+            work_history[-1]['end_work'] = \
+                epoch_to_iso(work_history[-1]['end_work'])
+            work_history[-1]['hours_worked'] = seconds_to_hours(work_history[-1]['hours_worked'])
+
         results[-1]["worker_history"] = work_history
+        results[-1]['at_work'] = design[results[-1]["at_work"]]
 
     return jsonify(results)
+
+
+@app.route('/raspi', methods=['POST'])
+def raspi_post():
+    image_data = request.form['image']
+    extension = request.form['extension']
+    N = 10
+    #  Random string generation for image files
+    filename = ''.join(random.choices(
+                       string.ascii_uppercase + string.digits, k=N))
+    print("LOGARIN", filename)
+    with open(str("./static/" + filename) + "." + str(extension), "wb") as fh:
+        fh.write(base64.decodebytes(image_data.encode()))
+
+    result = dict()
+    result['name'] = "Test Testescu"
+    result['status'] = 'entered'
+
+    return jsonify(result)
 
 
 @app.route('/uploads/<path:filename>')
 @cross_origin()
 def download_file(filename):
     '''Image fetching'''
-    return send_from_directory('/static',
+    return send_from_directory('./static',
                                filename, as_attachment=True)
 
 
