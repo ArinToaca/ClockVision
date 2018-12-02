@@ -60,12 +60,12 @@ class EmployeesTracking extends PolymerElement {
 
       </style>
 
-      <iron-ajax auto url="http://10.10.1.18:5000/all_workers" method="GET" handle-as="json" on-response="getAllWorkers"></iron-ajax>
+      <iron-ajax auto url="http://localhost:5000/all_workers" method="GET" handle-as="json" on-response="getAllWorkers"></iron-ajax>
       
       <template is="dom-repeat" items="{{employees}}">
         <paper-card animatedShadow="true">
           <paper-icon-item class="card-header">
-          <p><iron-icon icon="vaadin:circle" class$="{{item.at_work}} icon-dim"></iron-icon> [[item.name]]<img src="http://10.10.1.18:5000/static/[[item.worker_id]].jpg" class="customImg"></p>
+          <p><iron-icon icon="vaadin:circle" class$="{{item.at_work}} icon-dim"></iron-icon> [[item.name]]<img src="http://localhost:5000/static/[[item.worker_id]].jpg" class="customImg"></p>
           <span>&nbsp</span>
           <paper-item-body>
             <template is="dom-repeat" items="[[item.worker_history]]">
