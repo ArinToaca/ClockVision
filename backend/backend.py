@@ -1,4 +1,5 @@
 import os
+import calendar
 import datetime
 import string
 import random
@@ -14,18 +15,13 @@ from flask import Flask, request, session, g, redirect, url_for, abort, \
 import backend
 from machine_learning import Marius
 
-bullshit_hardcoded = dict()
-bullshit_hardcoded['Mario'] = False
-bullshit_hardcoded['Tofeni Marius'] = False
-bullshit_hardcoded['Elvis Presley'] = False
-bullshit_hardcoded['Toaca Arin'] = False
-bullshit_hardcoded['Darius Bogdan'] = False
-bullshit_hardcoded['Teny'] = False
-bullshit_hardcoded['Raluca Incicas'] = False
+bullshit_hardcoded = set(['Tofeni Marius', 'Toaca Arin', 'Darius Bogdan',
+                         'Raluca Inicas', 'Teny'])
 name_to_id = dict()
 name_to_id['Toaca Arin'] = 1
 name_to_id['Darius Bogdan'] = 2
 name_to_id['Teny'] = 3
+name_to_id['Tofeni Marius'] = 4
 design = {0: 'off', 1: 'on'}
 app = Flask(__name__)  # create the application instance :)
 app.config.from_object(__name__)  # load config from this file , flaskr.py
@@ -210,7 +206,8 @@ def get_all_workers():
                 epoch_to_iso(work_history[-1]['start_work'])
             work_history[-1]['end_work'] = \
                 epoch_to_iso(work_history[-1]['end_work'])
-            work_history[-1]['hours_worked'] = seconds_to_hours(work_history[-1]['hours_worked'])
+            work_history[-1]['hours_worked'] = seconds_to_hours(
+                    work_history[-1]['hours_worked'])
 
         results[-1]["worker_history"] = work_history
         results[-1]['at_work'] = design[results[-1]["at_work"]]
@@ -233,23 +230,62 @@ def raspi_post():
     print("bullshit_hardcoded = %s" % bullshit_hardcoded)
     result = dict()
     print("ML NAME! =%s" % ml_name)
-    if ml_name in bullshit_hardcoded.keys():
+    if ml_name in bullshit_hardcoded:
         print("RECOGNIZED FACE")
         result['name'] = ml_name
-        state = bullshit_hardcoded[ml_name]
-        state = not state
-        bullshit_hardcoded[ml_name] = state
         db = get_db()
+        print(name_to_id)
         cursor = db.execute('select at_work from workers '
                             'where worker_id == ?',
-                            name_to_id[ml_name])
-        state = cursor.fetchone()[0]
-        state = not state
-        db.execute('select at_work from workers '
-                   'where worker_id == ?',
-                   name_to_id[ml_name])
+                            [name_to_id[ml_name]])
+        time_now = calendar.timegm(time.gmtime())
+        start_work, end_work = time_now, time_now
+        at_work = not bool(cursor.fetchone()[0])
+        if at_work:
+            start_work = time_now
+            # INSERT NEW HISTORY
+            db.execute('insert into worker_history (start_work, '
+                       'end_work, hours_worked, worker_id) '
+                       'values (?, ?, ?,?)',
+                       [start_work,
+                        end_work,
+                        0,  # field only valid at end of workday.
+                        name_to_id[ml_name]])
+            db.execute('update workers '
+                       'set at_work = ? '
+                       'where worker_id == ?',
+                       [at_work,
+                        name_to_id[ml_name]])
+            db.commit()
+        else:
+            end_work = time_now
+            # UPDATE EXISTING HISTORY
+            # get last entry history_id associated with worker_id
+            cursor = db.execute('select history_id from worker_history where '
+                                'worker_id == ? order by history_id '
+                                'desc limit 1',
+                                [name_to_id[ml_name]])
+            history_id = cursor.fetchone()[0]
+            # for worker_history table
+            cursor = db.execute('select start_work from worker_history where '
+                                'history_id == ? ', [history_id])
+            start_work = int(cursor.fetchone()[0])
+            db.execute('update worker_history '
+                       'set end_work = ?, '
+                       'hours_worked = ? '
+                       'where history_id == ? ',
+                       [end_work,
+                        (int(end_work) - int(start_work)),  # simple diff atm
+                        history_id])
+            # for workers table
+            db.execute('update workers '
+                       'set at_work = ? '
+                       'where worker_id == ?',
+                       [at_work,
+                        name_to_id[ml_name]])
+            db.commit()
 
-        if state:
+        if at_work:
             result['status'] = 'Entered'
         else:
             result['status'] = 'Exited'
@@ -281,3 +317,4 @@ if __name__ == '__main__':
         app.run(host='0.0.0.0')
     else:
         raise ValueError("incorrect nr of args!")
+

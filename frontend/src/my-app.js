@@ -1,3 +1,13 @@
+/**
+ * @license
+ * Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+ * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+ * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+ * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+ * Code distributed by Google as part of the polymer project is also
+ * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+ */
+
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import { setPassiveTouchGestures, setRootPath } from '@polymer/polymer/lib/utils/settings.js';
 import '@polymer/app-layout/app-drawer/app-drawer.js';
@@ -11,8 +21,6 @@ import '@polymer/app-route/app-route.js';
 import '@polymer/iron-pages/iron-pages.js';
 import '@polymer/iron-selector/iron-selector.js';
 import '@polymer/paper-icon-button/paper-icon-button.js';
-import '@vaadin/vaadin-icons/vaadin-icons.js';
-
 import './my-icons.js';
 
 // Gesture events like tap and track generated from touch will not be
@@ -73,12 +81,11 @@ class MyApp extends PolymerElement {
 
       <app-drawer-layout fullbleed="" narrow="{{narrow}}">
         <!-- Drawer content -->
-        <app-drawer id="drawer" no-focus-trap="true" slot="drawer" swipe-open="[[narrow]]">
-          
-
+        <app-drawer id="drawer" slot="drawer" swipe-open="[[narrow]]">
+          <app-toolbar>Menu</app-toolbar>
           <iron-selector selected="[[page]]" attr-for-selected="name" class="drawer-list" role="navigation">
-            <a name="dashboard" href="[[rootPath]]dashboard"><iron-icon icon="vaadin:controller"></iron-icon> Dashboard</a>
-            <a name="emt" href="[[rootPath]]emt"><iron-icon icon="vaadin:group"></iron-icon> Employees Tracking</a>
+            <a name="view1" href="[[rootPath]]view1">Dashboard</a>
+            <a name="view2" href="[[rootPath]]view2">Employees</a>
           </iron-selector>
         </app-drawer>
 
@@ -88,14 +95,14 @@ class MyApp extends PolymerElement {
           <app-header slot="header" condenses="" reveals="" effects="waterfall">
             <app-toolbar>
               <paper-icon-button icon="my-icons:menu" drawer-toggle=""></paper-icon-button>
-              <div main-title="">Clock Vision</div>
+              <div main-title="">ClockVision</div>
             </app-toolbar>
           </app-header>
 
-
           <iron-pages selected="[[page]]" attr-for-selected="name" role="main">
-            <my-dashboard name="dashboard"></my-dashboard>
-            <my-emt name="emt"></my-emt>
+            <my-view1 name="view1"></my-view1>
+            <my-view2 name="view2"></my-view2>
+            <my-view3 name="view3"></my-view3>
             <my-view404 name="view404"></my-view404>
           </iron-pages>
         </app-header-layout>
@@ -127,8 +134,8 @@ class MyApp extends PolymerElement {
      // If no page was found in the route data, page will be an empty string.
      // Show 'view1' in that case. And if the page doesn't exist, show 'view404'.
     if (!page) {
-      this.page = 'dashboard';
-    } else if (['dashboard', 'emt'].indexOf(page) !== -1) {
+      this.page = 'view1';
+    } else if (['view1', 'view2'].indexOf(page) !== -1) {
       this.page = page;
     } else {
       this.page = 'view404';
@@ -146,11 +153,11 @@ class MyApp extends PolymerElement {
     // Note: `polymer build` doesn't like string concatenation in the import
     // statement, so break it up.
     switch (page) {
-      case 'dashboard':
-        import('./my-dashboard.js');
+      case 'view1':
+        import('./my-view1.js');
         break;
-      case 'emt':
-        import('./my-emt.js');
+      case 'view2':
+        import('./my-view2.js');
         break;
       case 'view404':
         import('./my-view404.js');
